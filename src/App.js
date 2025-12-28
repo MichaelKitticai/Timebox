@@ -760,7 +760,7 @@ export default function PunctualityPlanner() {
                       <ul className="divide-y divide-white/10">
                         <li className="px-4 py-3 flex items-center justify-between gap-3">
                           <span className="text-sm text-white/80">
-                            ⏰ Start prep
+                             Start prep ⏰
                           </span>
                           <span className="text-sm font-semibold text-white">
                             {formatTime(schedule.startPrepBy)}
@@ -768,21 +768,21 @@ export default function PunctualityPlanner() {
                         </li>
                         <li className="px-4 py-3 flex items-center justify-between gap-3">
                           <span className="text-sm text-white/80">
-                            🚿 Shower
+                            Shower 🚿
                           </span>
                           <span className="text-sm font-semibold text-white">
                             {formatTime(schedule.showerTime)}
                           </span>
                         </li>
                         <li className="px-4 py-3 flex items-center justify-between gap-3">
-                          <span className="text-sm text-white/80">🍽️ Eat</span>
+                          <span className="text-sm text-white/80">Eat 🍽️</span>
                           <span className="text-sm font-semibold text-white">
                             {formatTime(schedule.eatTime)}
                           </span>
                         </li>
                         <li className="px-4 py-3 flex items-center justify-between gap-3">
                           <span className="text-sm text-white/80">
-                            🚗 Leave by
+                             Leave by 🚗
                           </span>
                           <span className="text-sm font-semibold text-white">
                             {formatTime(schedule.leaveBy)}
@@ -790,7 +790,7 @@ export default function PunctualityPlanner() {
                         </li>
                         <li className="px-4 py-3 flex items-center justify-between gap-3">
                           <span className="text-sm text-white/80">
-                            📍 Arrive by
+                             Arrive by 📍
                           </span>
                           <span className="text-sm font-semibold text-white">
                             {formatTime(schedule.arriveBy)}
