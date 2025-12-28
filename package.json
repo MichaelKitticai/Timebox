@@ -6,17 +6,17 @@
   "keywords": [],
   "main": "src/index.js",
   "dependencies": {
+    "@vercel/analytics": "^1.6.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-scripts": "^5.0.0"
   },
   "devDependencies": {
-    "loader-utils": "3.2.1",
-    
-    "tailwindcss": "4.1.18",
     "@tailwindcss/postcss": "4.1.18",
+    "autoprefixer": "^10.4.20",
+    "loader-utils": "3.2.1",
     "postcss": "^8.4.47",
-    "autoprefixer": "^10.4.20"
+    "tailwindcss": "4.1.18"
   },
   "scripts": {
     "start": "react-scripts start",

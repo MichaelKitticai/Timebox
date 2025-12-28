@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Analytics } from "@vercel/analytics/react";
 
 function clampNumber(n, min, max) {
   if (Number.isNaN(n)) return min;
@@ -530,6 +531,7 @@ export default function PunctualityPlanner() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 px-4 py-10 flex items-center justify-center">
+      <Analytics />
       <div className="w-full max-w-xl">
         <div className="rounded-2xl shadow-2xl border border-white/10 overflow-hidden bg-white/5 backdrop-blur-xl">
           <div className="p-6">
