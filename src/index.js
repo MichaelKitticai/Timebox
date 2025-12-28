@@ -1,3 +1,4 @@
+import * as serviceWorkerRegistration from "./serviceWorkerRegistration";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
