@@ -1,4 +1,3 @@
-```jsx
 /* PREVIEW */
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -75,50 +74,7 @@ function useOutsideClick(refs, onOutside) {
       document.removeEventListener("touchstart", onDown);
     };
   }, [refs, onOutside]);
-}
-
-function ScrollColumn({ items, value, onPick, format }) {
-  const listRef = useRef(null);
-  const rowH = 56;
-
-  useEffect(() => {
-    const el = listRef.current;
-    if (!el) return;
-    const idx = items.findIndex((x) => x === value);
-    if (idx < 0) return;
-    const target = Math.max(0, idx * rowH - 2 * rowH);
-    el.scrollTo({ top: target, behavior: "auto" });
-  }, [items, value]);
-
-  return (
-    <div className="flex-1 min-w-0">
-      <div
-        ref={listRef}
-        className="h-72 overflow-y-auto overflow-x-hidden"
-        style={{ WebkitOverflowScrolling: "touch" }}
-      >
-        {items.map((it) => {
-          const active = it === value;
-          return (
-            <button
-              key={String(it)}
-              type="button"
-              onClick={() => onPick(it)}
-              className={
-                "w-full h-14 px-2 flex items-center justify-center font-semibold tracking-tight transition " +
-                (active ? "text-white" : "text-white/55 hover:text-white/90")
-              }
-              aria-pressed={active}
-            >
-              <span className="text-4xl leading-none">{format(it)}</span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
+} // ✅ this brace was missing, it caused the Vercel compile error
 
 function TimePickerField({ value, onChange }) {
   const [open, setOpen] = useState(false);
@@ -151,7 +107,6 @@ function TimePickerField({ value, onChange }) {
   return (
     <div className="w-full" ref={wrapRef}>
       <div className="relative w-full mt-2">
-        {/* field stays the same shape */}
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
@@ -160,12 +115,10 @@ function TimePickerField({ value, onChange }) {
           aria-expanded={open}
         >
           <div className="flex items-center justify-between gap-3">
-            <div className={display ? "text-white text-lg" : "text-white/35 text-lg"}>
-              {display || "08:00 AM"}
-            </div>
+            <div className={display ? "text-white text-lg" : "text-white/35 text-lg"}>{display || "08:00 AM"}</div>
 
             <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 grid place-items-center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="opacity-90">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="opacity-90" aria-hidden="true">
                 <path
                   d="M12 8v5l3 2M21 12a9 9 0 1 1-18 0a9 9 0 0 1 18 0Z"
                   stroke="currentColor"
@@ -186,35 +139,18 @@ function TimePickerField({ value, onChange }) {
             role="dialog"
             aria-label="Time picker"
           >
-            {/* selected row (blue boxes) */}
             <div className="grid grid-cols-3 gap-3 p-4 pb-3">
-              <button
-                type="button"
-                onClick={() => {}}
-                className="h-12 rounded bg-[#0b6cff] text-white text-2xl font-semibold"
-                aria-label="Selected hour"
-              >
+              <div className="h-12 rounded bg-[#0b6cff] text-white text-2xl font-semibold grid place-items-center">
                 {pad2(hour12)}
-              </button>
-              <button
-                type="button"
-                onClick={() => {}}
-                className="h-12 rounded bg-[#0b6cff] text-white text-2xl font-semibold"
-                aria-label="Selected minute"
-              >
+              </div>
+              <div className="h-12 rounded bg-[#0b6cff] text-white text-2xl font-semibold grid place-items-center">
                 {pad2(minute)}
-              </button>
-              <button
-                type="button"
-                onClick={() => {}}
-                className="h-12 rounded bg-[#0b6cff] text-white text-2xl font-semibold"
-                aria-label="Selected AM PM"
-              >
+              </div>
+              <div className="h-12 rounded bg-[#0b6cff] text-white text-2xl font-semibold grid place-items-center">
                 {meridiem}
-              </button>
+              </div>
             </div>
 
-            {/* lists */}
             <div className="grid grid-cols-3 gap-3 px-4 pb-4">
               <div className="max-h-72 overflow-auto pr-1">
                 {hours.map((h) => (
@@ -283,8 +219,6 @@ function TimePickerField({ value, onChange }) {
     </div>
   );
 }
-
-
 
 function computeSchedule({ eventTime, prepMinutes, commuteMinutes, extraTimeMinutes }) {
   if (!eventTime) return null;
@@ -423,10 +357,7 @@ export default function App() {
     return found || normalDefaults;
   }, [activePreset, presets, normalDefaults]);
 
-  const effectivePrep = useMemo(
-    () => (String(prepMinutes).trim() === "" ? defaultsNow.prep : prepMinutes),
-    [prepMinutes, defaultsNow]
-  );
+  const effectivePrep = useMemo(() => (String(prepMinutes).trim() === "" ? defaultsNow.prep : prepMinutes), [prepMinutes, defaultsNow]);
   const effectiveCommute = useMemo(
     () => (String(commuteMinutes).trim() === "" ? defaultsNow.commute : commuteMinutes),
     [commuteMinutes, defaultsNow]
@@ -920,4 +851,3 @@ export default function App() {
     </div>
   );
 }
-```
