@@ -126,72 +126,75 @@ function TimePickerField({ value, onChange }) {
         </button>
 
         {open ? (
-          <div
-            ref={panelRef}
-            className={
-              "absolute z-50 mt-2 w-full max-w-sm rounded-2xl border border-white/10 bg-slate-950/95 " +
-              "backdrop-blur-xl shadow-2xl shadow-black/40 overflow-hidden"
-            }
-            role="dialog"
-            aria-label="Time picker"
-          >
-            <div className="px-4 py-3 border-b border-white/10">
-              <div className="text-sm text-white/85 font-semibold">Pick time</div>
-              <div className="text-xs text-white/55 mt-1">Tap hour, minute, or AM/PM</div>
-            </div>
+  <div
+    ref={panelRef}
+    className="absolute z-50 mt-2 w-[320px] rounded-[32px] border border-white/10 bg-white/10 backdrop-blur-2xl shadow-2xl shadow-black/40 overflow-hidden"
+    role="dialog"
+    aria-label="Time picker"
+  >
+    <div className="p-4">
+      <div className="grid grid-cols-3 gap-4 items-start">
+        <WheelColumn
+          items={hours}
+          selected={hour12}
+          format={(n) => pad2(n)}
+          onPick={(h) => setPart(h, minute, meridiem)}
+        />
+        <WheelColumn
+          items={minutes}
+          selected={minute}
+          format={(n) => pad2(n)}
+          onPick={(m) => setPart(hour12, m, meridiem)}
+        />
+        <WheelColumn
+          items={meridiems}
+          selected={meridiem}
+          format={(s) => s}
+          onPick={(md) => setPart(hour12, minute, md)}
+        />
+      </div>
+    </div>
+  </div>
+) : null}
 
-            <div className="p-4">
-              <div className="grid grid-cols-3 gap-3">
-                <PickerColumn
-                  label="Hour"
-                  items={hours}
-                  selected={hour12}
-                  format={(n) => pad2(n)}
-                  onPick={(h) => setPart(h, minute, meridiem)}
-                />
-                <PickerColumn
-                  label="Minute"
-                  items={minutes}
-                  selected={minute}
-                  format={(n) => pad2(n)}
-                  onPick={(m) => setPart(hour12, m, meridiem)}
-                />
-                <PickerColumn
-                  label="AM/PM"
-                  items={meridiems}
-                  selected={meridiem}
-                  format={(s) => s}
-                  onPick={(md) => setPart(hour12, minute, md)}
-                />
-              </div>
-
-              <div className="mt-4 flex items-center justify-between gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    onChange?.("");
-                    setOpen(false);
-                  }}
-                  className="h-10 px-4 rounded-xl bg-white/5 border border-white/10 text-white/75 hover:bg-white/10"
-                >
-                  Clear
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  className="h-10 px-5 rounded-xl bg-gradient-to-r from-indigo-500 to-fuchsia-500 text-white font-semibold hover:opacity-95 active:opacity-90"
-                >
-                  Done
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : null}
       </div>
     </div>
   );
 }
+
+function WheelColumn({ items, selected, format, onPick }) {
+  return (
+    <div className="relative rounded-[26px] bg-white/10 border border-white/10 overflow-hidden">
+      <div className="max-h-72 overflow-auto py-3 px-2 space-y-2">
+        {items.map((it) => {
+          const active = it === selected;
+          return (
+            <button
+              key={String(it)}
+              type="button"
+              onClick={() => onPick(it)}
+              className={
+                "w-full h-12 rounded-full text-center font-semibold transition flex items-center justify-center " +
+                (active
+                  ? "bg-indigo-500/25 text-white ring-2 ring-cyan-300/40"
+                  : "text-white/65 hover:bg-white/10")
+              }
+              aria-pressed={active}
+            >
+              <span className="text-2xl tracking-wide">{format(it)}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-slate-950/40 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-slate-950/40 to-transparent" />
+      </div>
+    </div>
+  );
+}
+
 
 function PickerColumn({ label, items, selected, format, onPick }) {
   return (
@@ -205,8 +208,7 @@ function PickerColumn({ label, items, selected, format, onPick }) {
               key={String(it)}
               type="button"
               onClick={() => onPick(it)}
-              className={
-                "w-full h-11 rounded-xl border text-center font-semibold transition " +
+              className="w-full h-16 rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-left focus:outline-none focus:ring-2 focus:ring-indigo-400/70"
                 (active
                   ? "bg-gradient-to-r from-indigo-500 to-fuchsia-500 text-white border-white/10"
                   : "bg-white/5 text-white/85 border-white/10 hover:bg-white/10")
