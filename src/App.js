@@ -117,6 +117,7 @@ function ScrollColumn({ items, value, onPick, format }) {
   );
 }
 
+
 function TimePickerField({ value, onChange }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
@@ -148,31 +149,28 @@ function TimePickerField({ value, onChange }) {
   return (
     <div className="w-full" ref={wrapRef}>
       <div className="relative w-full mt-2">
+        {/* field stays the same shape */}
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="w-full h-16 rounded-2xl border border-white/10 bg-white/5 px-6 py-3 text-left focus:outline-none focus:ring-2 focus:ring-white/20"
+          className="w-full h-16 rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-left focus:outline-none focus:ring-2 focus:ring-indigo-400/70"
           aria-haspopup="dialog"
           aria-expanded={open}
         >
           <div className="flex items-center justify-between gap-3">
-            <div className={display ? "text-white/45 text-3xl font-semibold tracking-wide" : "text-white/35 text-3xl font-semibold tracking-wide"}>
+            <div className={display ? "text-white text-lg" : "text-white/35 text-lg"}>
               {display || "08:00 AM"}
             </div>
 
-            <div className="grid place-items-center text-white/70">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 grid place-items-center">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="opacity-90">
                 <path
-                  d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"
+                  d="M12 8v5l3 2M21 12a9 9 0 1 1-18 0a9 9 0 0 1 18 0Z"
                   stroke="currentColor"
-                  strokeWidth="1.8"
-                />
-                <path
-                  d="M12 7v6l4 2"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
+                  strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
+                  className="text-white"
                 />
               </svg>
             </div>
@@ -182,63 +180,100 @@ function TimePickerField({ value, onChange }) {
         {open ? (
           <div
             ref={panelRef}
-            className="absolute z-50 mt-5 w-[360px] max-w-[92vw] rounded-[32px] border border-white/12 bg-white/10 backdrop-blur-2xl shadow-[0_28px_90px_rgba(0,0,0,0.55)] overflow-hidden"
+            className="absolute z-50 mt-3 w-[340px] max-w-[92vw] overflow-hidden rounded-2xl border border-black/10 bg-white shadow-xl"
             role="dialog"
             aria-label="Time picker"
           >
-            <div className="px-6 pt-5 pb-3">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex-1 flex justify-center">
-                  <div className="min-w-[84px] h-12 rounded-full flex items-center justify-center bg-[#0e3b86]/55 text-white text-3xl font-semibold ring-2 ring-[#35d0d6]/55">
-                    {pad2(hour12)}
-                  </div>
-                </div>
+            {/* selected row (blue boxes) */}
+            <div className="grid grid-cols-3 gap-3 p-4 pb-3">
+              <button
+                type="button"
+                onClick={() => {}}
+                className="h-12 rounded bg-[#0b6cff] text-white text-2xl font-semibold"
+                aria-label="Selected hour"
+              >
+                {pad2(hour12)}
+              </button>
+              <button
+                type="button"
+                onClick={() => {}}
+                className="h-12 rounded bg-[#0b6cff] text-white text-2xl font-semibold"
+                aria-label="Selected minute"
+              >
+                {pad2(minute)}
+              </button>
+              <button
+                type="button"
+                onClick={() => {}}
+                className="h-12 rounded bg-[#0b6cff] text-white text-2xl font-semibold"
+                aria-label="Selected AM PM"
+              >
+                {meridiem}
+              </button>
+            </div>
 
-                <div className="flex-1 flex justify-center">
-                  <div className="min-w-[84px] h-12 rounded-full flex items-center justify-center bg-[#0e3b86]/55 text-white text-3xl font-semibold">
-                    {pad2(minute)}
-                  </div>
-                </div>
+            {/* lists */}
+            <div className="grid grid-cols-3 gap-3 px-4 pb-4">
+              <div className="max-h-72 overflow-auto pr-1">
+                {hours.map((h) => (
+                  <button
+                    key={h}
+                    type="button"
+                    onClick={() => setPart(h, minute, meridiem)}
+                    className={
+                      "w-full h-14 rounded flex items-center justify-center text-3xl font-semibold " +
+                      (h === hour12 ? "bg-black/5 text-black" : "bg-transparent text-black hover:bg-black/5")
+                    }
+                    aria-pressed={h === hour12}
+                  >
+                    {pad2(h)}
+                  </button>
+                ))}
+              </div>
 
-                <div className="flex-1 flex justify-center">
-                  <div className="min-w-[84px] h-12 rounded-full flex items-center justify-center bg-[#0e3b86]/55 text-white text-3xl font-semibold">
-                    {meridiem}
-                  </div>
-                </div>
+              <div className="max-h-72 overflow-auto pr-1">
+                {minutes.map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setPart(hour12, m, meridiem)}
+                    className={
+                      "w-full h-14 rounded flex items-center justify-center text-3xl font-semibold " +
+                      (m === minute ? "bg-black/5 text-black" : "bg-transparent text-black hover:bg-black/5")
+                    }
+                    aria-pressed={m === minute}
+                  >
+                    {pad2(m)}
+                  </button>
+                ))}
+              </div>
+
+              <div className="max-h-72 overflow-auto pr-1">
+                {meridiems.map((md) => (
+                  <button
+                    key={md}
+                    type="button"
+                    onClick={() => setPart(hour12, minute, md)}
+                    className={
+                      "w-full h-14 rounded flex items-center justify-center text-3xl font-semibold " +
+                      (md === meridiem ? "bg-black/5 text-black" : "bg-transparent text-black hover:bg-black/5")
+                    }
+                    aria-pressed={md === meridiem}
+                  >
+                    {md}
+                  </button>
+                ))}
               </div>
             </div>
 
-            <div className="px-6 pb-6">
-              <div className="flex gap-6">
-                <ScrollColumn
-                  items={hours}
-                  value={hour12}
-                  format={(n) => pad2(n)}
-                  onPick={(h) => setPart(h, minute, meridiem)}
-                />
-                <ScrollColumn
-                  items={minutes}
-                  value={minute}
-                  format={(n) => pad2(n)}
-                  onPick={(m) => setPart(hour12, m, meridiem)}
-                />
-                <ScrollColumn
-                  items={meridiems}
-                  value={meridiem}
-                  format={(s) => s}
-                  onPick={(md) => setPart(hour12, minute, md)}
-                />
-              </div>
-
-              <div className="mt-5 flex items-center justify-end">
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  className="h-11 px-5 rounded-xl bg-white/12 border border-white/12 text-white/85 font-semibold hover:bg-white/16 focus:outline-none focus:ring-2 focus:ring-white/20"
-                >
-                  Done
-                </button>
-              </div>
+            <div className="px-4 pb-4 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="h-10 px-4 rounded-lg bg-black text-white text-sm font-semibold hover:opacity-90"
+              >
+                Done
+              </button>
             </div>
           </div>
         ) : null}
@@ -246,6 +281,8 @@ function TimePickerField({ value, onChange }) {
     </div>
   );
 }
+
+
 
 function computeSchedule({ eventTime, prepMinutes, commuteMinutes, extraTimeMinutes }) {
   if (!eventTime) return null;
