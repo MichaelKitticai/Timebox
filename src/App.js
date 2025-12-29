@@ -1,4 +1,3 @@
-```jsx
 /* PREVIEW */
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -856,4 +855,3 @@ export default function App() {
     </div>
   );
 }
-```
