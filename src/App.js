@@ -1,3 +1,4 @@
+```jsx
 /* PREVIEW */
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -58,13 +59,12 @@ function toHHMM24(hour12, minute, meridiem) {
   return `${pad2(h24)}:${pad2(m)}`;
 }
 
-function useOutsideClick(ref, onOutside) {
+function useOutsideClick(refs, onOutside) {
   useEffect(() => {
     const onDown = (e) => {
-      const el = ref.current;
-      if (!el) return;
-      if (el.contains(e.target)) return;
-      onOutside?.();
+      const target = e.target;
+      const inside = refs.some((r) => r.current && r.current.contains(target));
+      if (!inside) onOutside?.();
     };
     document.addEventListener("mousedown", onDown);
     document.addEventListener("touchstart", onDown, { passive: true });
@@ -72,37 +72,46 @@ function useOutsideClick(ref, onOutside) {
       document.removeEventListener("mousedown", onDown);
       document.removeEventListener("touchstart", onDown);
     };
-  }, [ref, onOutside]);
+  }, [refs, onOutside]);
 }
 
-function WheelColumn({ items, selected, format, onPick }) {
+function ScrollColumn({ items, value, onPick, format }) {
+  const listRef = useRef(null);
+  const rowH = 56;
+
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    const idx = items.findIndex((x) => x === value);
+    if (idx < 0) return;
+    const target = Math.max(0, idx * rowH - 2 * rowH);
+    el.scrollTo({ top: target, behavior: "auto" });
+  }, [items, value]);
+
   return (
-    <div className="relative rounded-[26px] bg-white/10 border border-white/10 overflow-hidden">
-      <div className="max-h-72 overflow-auto py-3 px-2 space-y-2">
+    <div className="flex-1 min-w-0">
+      <div
+        ref={listRef}
+        className="h-72 overflow-y-auto overflow-x-hidden"
+        style={{ WebkitOverflowScrolling: "touch" }}
+      >
         {items.map((it) => {
-          const active = it === selected;
+          const active = it === value;
           return (
             <button
               key={String(it)}
               type="button"
               onClick={() => onPick(it)}
               className={
-                "w-full h-12 rounded-full text-center font-semibold transition flex items-center justify-center " +
-                (active
-                  ? "bg-indigo-500/25 text-white ring-2 ring-cyan-300/40"
-                  : "text-white/65 hover:bg-white/10")
+                "w-full h-14 px-2 flex items-center justify-center font-semibold tracking-tight transition " +
+                (active ? "text-white" : "text-white/55 hover:text-white/90")
               }
               aria-pressed={active}
             >
-              <span className="text-2xl tracking-wide">{format(it)}</span>
+              <span className="text-4xl leading-none">{format(it)}</span>
             </button>
           );
         })}
-      </div>
-
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-slate-950/40 to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-slate-950/40 to-transparent" />
       </div>
     </div>
   );
@@ -111,8 +120,17 @@ function WheelColumn({ items, selected, format, onPick }) {
 function TimePickerField({ value, onChange }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
+  const panelRef = useRef(null);
 
-  useOutsideClick(wrapRef, () => setOpen(false));
+  useOutsideClick([wrapRef, panelRef], () => setOpen(false));
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const { hour12, minute, meridiem } = useMemo(() => displayPartsFromHHMM(value), [value]);
 
@@ -133,24 +151,28 @@ function TimePickerField({ value, onChange }) {
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="w-full h-16 rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-left focus:outline-none focus:ring-2 focus:ring-indigo-400/70"
+          className="w-full h-16 rounded-2xl border border-white/10 bg-white/5 px-6 py-3 text-left focus:outline-none focus:ring-2 focus:ring-white/20"
           aria-haspopup="dialog"
           aria-expanded={open}
         >
           <div className="flex items-center justify-between gap-3">
-            <div className={display ? "text-white text-lg" : "text-white/35 text-lg"}>
+            <div className={display ? "text-white/45 text-3xl font-semibold tracking-wide" : "text-white/35 text-3xl font-semibold tracking-wide"}>
               {display || "08:00 AM"}
             </div>
 
-            <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 grid place-items-center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="opacity-90">
+            <div className="grid place-items-center text-white/70">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path
-                  d="M12 8v5l3 2M21 12a9 9 0 1 1-18 0a9 9 0 0 1 18 0Z"
+                  d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"
                   stroke="currentColor"
-                  strokeWidth="2"
+                  strokeWidth="1.8"
+                />
+                <path
+                  d="M12 7v6l4 2"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="text-white"
                 />
               </svg>
             </div>
@@ -159,37 +181,60 @@ function TimePickerField({ value, onChange }) {
 
         {open ? (
           <div
-            className="absolute z-50 mt-3 w-[340px] max-w-[92vw] rounded-[32px] border border-white/10 bg-white/10 backdrop-blur-2xl shadow-2xl shadow-black/40 overflow-hidden"
+            ref={panelRef}
+            className="absolute z-50 mt-5 w-[360px] max-w-[92vw] rounded-[32px] border border-white/12 bg-white/10 backdrop-blur-2xl shadow-[0_28px_90px_rgba(0,0,0,0.55)] overflow-hidden"
             role="dialog"
             aria-label="Time picker"
           >
-            <div className="p-4">
-              <div className="grid grid-cols-3 gap-4 items-start">
-                <WheelColumn
+            <div className="px-6 pt-5 pb-3">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex-1 flex justify-center">
+                  <div className="min-w-[84px] h-12 rounded-full flex items-center justify-center bg-[#0e3b86]/55 text-white text-3xl font-semibold ring-2 ring-[#35d0d6]/55">
+                    {pad2(hour12)}
+                  </div>
+                </div>
+
+                <div className="flex-1 flex justify-center">
+                  <div className="min-w-[84px] h-12 rounded-full flex items-center justify-center bg-[#0e3b86]/55 text-white text-3xl font-semibold">
+                    {pad2(minute)}
+                  </div>
+                </div>
+
+                <div className="flex-1 flex justify-center">
+                  <div className="min-w-[84px] h-12 rounded-full flex items-center justify-center bg-[#0e3b86]/55 text-white text-3xl font-semibold">
+                    {meridiem}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 pb-6">
+              <div className="flex gap-6">
+                <ScrollColumn
                   items={hours}
-                  selected={hour12}
+                  value={hour12}
                   format={(n) => pad2(n)}
                   onPick={(h) => setPart(h, minute, meridiem)}
                 />
-                <WheelColumn
+                <ScrollColumn
                   items={minutes}
-                  selected={minute}
+                  value={minute}
                   format={(n) => pad2(n)}
                   onPick={(m) => setPart(hour12, m, meridiem)}
                 />
-                <WheelColumn
+                <ScrollColumn
                   items={meridiems}
-                  selected={meridiem}
+                  value={meridiem}
                   format={(s) => s}
                   onPick={(md) => setPart(hour12, minute, md)}
                 />
               </div>
 
-              <div className="mt-4 flex items-center justify-end gap-2">
+              <div className="mt-5 flex items-center justify-end">
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="h-10 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white/85 text-sm font-semibold"
+                  className="h-11 px-5 rounded-xl bg-white/12 border border-white/12 text-white/85 font-semibold hover:bg-white/16 focus:outline-none focus:ring-2 focus:ring-white/20"
                 >
                   Done
                 </button>
@@ -836,3 +881,4 @@ export default function App() {
     </div>
   );
 }
+```
