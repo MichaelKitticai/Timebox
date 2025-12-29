@@ -1,11 +1,10 @@
+/* PREVIEW */
 import { useEffect, useMemo, useRef, useState } from "react";
 
 function clampNumber(n, min, max) {
   if (Number.isNaN(n)) return min;
   return Math.min(max, Math.max(min, n));
 }
-
-import { useEffect, useState } from "react";
 
 function useServiceWorkerUpdate() {
   const [registration, setRegistration] = useState(null);
@@ -32,7 +31,6 @@ function useServiceWorkerUpdate() {
   return { hasUpdate: Boolean(registration?.waiting), refresh };
 }
 
-
 function formatTime(date) {
   return date.toLocaleTimeString("en-US", {
     hour: "2-digit",
@@ -49,12 +47,7 @@ function subtractMinutes(date, minutes) {
   return new Date(date.getTime() - minutes * 60_000);
 }
 
-function computeSchedule({
-  eventTime,
-  prepMinutes,
-  commuteMinutes,
-  extraTimeMinutes,
-}) {
+function computeSchedule({ eventTime, prepMinutes, commuteMinutes, extraTimeMinutes }) {
   if (!eventTime) return null;
 
   const [hhRaw, mmRaw] = eventTime.split(":");
@@ -62,17 +55,9 @@ function computeSchedule({
   const mm = Number(mmRaw);
   if (Number.isNaN(hh) || Number.isNaN(mm)) return null;
 
-  const safeExtraTime = clampNumber(
-    parseInt(String(extraTimeMinutes), 10),
-    0,
-    120
-  );
+  const safeExtraTime = clampNumber(parseInt(String(extraTimeMinutes), 10), 0, 120);
   const safePrep = clampNumber(parseInt(String(prepMinutes), 10), 0, 24 * 60);
-  const safeCommute = clampNumber(
-    parseInt(String(commuteMinutes), 10),
-    0,
-    24 * 60
-  );
+  const safeCommute = clampNumber(parseInt(String(commuteMinutes), 10), 0, 24 * 60);
 
   const eventDate = new Date();
   eventDate.setSeconds(0, 0);
@@ -103,10 +88,7 @@ function inferPreset({ prep, commute, extraTime }, presets) {
   let bestScore = Infinity;
 
   for (const p of presets) {
-    const score =
-      Math.abs(prep - p.prep) +
-      Math.abs(commute - p.commute) +
-      Math.abs(extraTime - p.extraTime);
+    const score = Math.abs(prep - p.prep) + Math.abs(commute - p.commute) + Math.abs(extraTime - p.extraTime);
     if (score < bestScore) {
       bestScore = score;
       best = p.label;
@@ -147,9 +129,7 @@ function Presets({ presets, activePreset, onPick }) {
           <span
             className={
               "w-full sm:w-auto flex items-center justify-center rounded-2xl px-5 py-4 text-sm sm:text-base font-semibold " +
-              (activePreset === p.label
-                ? "bg-slate-950/60 text-white"
-                : "bg-white/5 text-white/85")
+              (activePreset === p.label ? "bg-slate-950/60 text-white" : "bg-white/5 text-white/85")
             }
           >
             {p.label}
@@ -165,8 +145,7 @@ function MiniTimePresets({ options, value, fallbackActive, onSelect }) {
   return (
     <div className="grid grid-cols-5 gap-2 w-full">
       {options.map((m) => {
-        const active =
-          current !== "" ? parseInt(current, 10) === m : fallbackActive === m;
+        const active = current !== "" ? parseInt(current, 10) === m : fallbackActive === m;
         return (
           <button
             key={m}
@@ -183,9 +162,7 @@ function MiniTimePresets({ options, value, fallbackActive, onSelect }) {
             <span
               className={
                 "block w-full rounded-full py-1 text-[10px] leading-none text-center truncate " +
-                (active
-                  ? "bg-slate-950/60 text-white"
-                  : "bg-white/5 text-white/80")
+                (active ? "bg-slate-950/60 text-white" : "bg-white/5 text-white/80")
               }
             >
               {m}m
@@ -216,7 +193,26 @@ function saveProfiles(profiles) {
   }
 }
 
+function Credit() {
+  return (
+    <div className="mt-6 text-center text-xs text-white/55">
+      Made by{" "}
+      <a
+        href="https://www.linkedin.com/in/michaelkitticai/"
+        target="_blank"
+        rel="noreferrer"
+        className="underline text-white/75 hover:text-white"
+      >
+        Kitticai
+      </a>{" "}
+      ❤️
+    </div>
+  );
+}
+
 export default function PunctualityPlanner() {
+  const { hasUpdate, refresh } = useServiceWorkerUpdate();
+
   const [page, setPage] = useState("setup"); // setup | result
 
   const [eventTime, setEventTime] = useState("");
@@ -246,20 +242,14 @@ export default function PunctualityPlanner() {
     []
   );
 
-  const normalDefaults = useMemo(
-    () => presets.find((p) => p.label === "Normal") || presets[0],
-    [presets]
-  );
+  const normalDefaults = useMemo(() => presets.find((p) => p.label === "Normal") || presets[0], [presets]);
 
   const getPresetDefaults = (label) => {
     const found = presets.find((p) => p.label === label);
     return found || normalDefaults;
   };
 
-  const defaultsNow = useMemo(
-    () => getPresetDefaults(activePreset || "Normal"),
-    [activePreset, normalDefaults]
-  );
+  const defaultsNow = useMemo(() => getPresetDefaults(activePreset || "Normal"), [activePreset, normalDefaults]);
 
   const effectivePrep = useMemo(() => {
     const raw = String(prepMinutes).trim();
@@ -293,12 +283,9 @@ export default function PunctualityPlanner() {
     if (!last) return;
 
     if (typeof last?.prep === "number") setPrepMinutes(String(last.prep));
-    if (typeof last?.commute === "number")
-      setCommuteMinutes(String(last.commute));
-    if (typeof last?.extraTime === "number")
-      setExtraTimeMinutes(String(last.extraTime));
-    if (typeof last?.preset === "string" && last.preset)
-      setActivePreset(last.preset);
+    if (typeof last?.commute === "number") setCommuteMinutes(String(last.commute));
+    if (typeof last?.extraTime === "number") setExtraTimeMinutes(String(last.extraTime));
+    if (typeof last?.preset === "string" && last.preset) setActivePreset(last.preset);
 
     setNote(`Loaded: ${last.name || "Saved setting"}`);
     window.setTimeout(() => setNote(""), 1600);
@@ -334,8 +321,7 @@ export default function PunctualityPlanner() {
     const commute = parseInt(String(effectiveCommute), 10);
     const extraTime = parseInt(String(effectiveExtra), 10);
 
-    if (Number.isNaN(prep) || Number.isNaN(commute) || Number.isNaN(extraTime))
-      return null;
+    if (Number.isNaN(prep) || Number.isNaN(commute) || Number.isNaN(extraTime)) return null;
 
     return inferPreset({ prep, commute, extraTime }, presets);
   }, [effectivePrep, effectiveCommute, effectiveExtra, presets]);
@@ -344,9 +330,7 @@ export default function PunctualityPlanner() {
   const isReadyToCalculate = Boolean(eventTime);
 
   const canSaveNamed =
-    String(effectivePrep).trim() !== "" &&
-    String(effectiveCommute).trim() !== "" &&
-    String(effectiveExtra).trim() !== "";
+    String(effectivePrep).trim() !== "" && String(effectiveCommute).trim() !== "" && String(effectiveExtra).trim() !== "";
 
   const applyPreset = (p) => {
     setActivePreset(p.label);
@@ -393,8 +377,7 @@ export default function PunctualityPlanner() {
     const commute = parseInt(String(effectiveCommute), 10);
     const extraTime = parseInt(String(effectiveExtra), 10);
 
-    if (Number.isNaN(prep) || Number.isNaN(commute) || Number.isNaN(extraTime))
-      return false;
+    if (Number.isNaN(prep) || Number.isNaN(commute) || Number.isNaN(extraTime)) return false;
 
     const id = `p_${Date.now()}_${Math.random().toString(16).slice(2)}`;
     const preset = activePreset || inferredPreset || "";
@@ -562,18 +545,12 @@ export default function PunctualityPlanner() {
         <div className="rounded-2xl shadow-2xl border border-white/10 overflow-hidden bg-white/5 backdrop-blur-xl">
           <div className="p-6">
             <div className="flex flex-col items-center text-center gap-3">
-              <h1 className="text-xl font-semibold text-white">
-                Punctuality Planner
-              </h1>
-              <p className="text-sm text-white/70 max-w-md">
-                Pick a pace, set your times, then get a clear plan.
-              </p>
+              <h1 className="text-xl font-semibold text-white">Punctuality Planner</h1>
+              <p className="text-sm text-white/70 max-w-md">Pick a pace, set your times, then get a clear plan.</p>
 
               {page === "result" && schedule ? (
                 <div className="mt-2">
-                  <div className="text-xs text-white/60">
-                    Start getting ready
-                  </div>
+                  <div className="text-xs text-white/60">Start getting ready</div>
                   <div className="mt-1 text-5xl sm:text-6xl font-extrabold tracking-tight bg-gradient-to-r from-fuchsia-400 via-indigo-300 to-cyan-300 bg-clip-text text-transparent">
                     {formatTime(schedule.startPrepBy)}
                   </div>
@@ -591,18 +568,11 @@ export default function PunctualityPlanner() {
               ) : null}
             </div>
 
-            <Presets
-              presets={presets}
-              activePreset={page === "result" ? inferredPreset : activePreset}
-              onPick={applyPreset}
-            />
+            <Presets presets={presets} activePreset={page === "result" ? inferredPreset : activePreset} onPick={applyPreset} />
 
             {page === "result" && inferredPreset ? (
               <div className="mt-3 text-xs text-white/60 text-center">
-                Your settings match:{" "}
-                <span className="text-white/80 font-semibold">
-                  {inferredPreset}
-                </span>
+                Your settings match: <span className="text-white/80 font-semibold">{inferredPreset}</span>
               </div>
             ) : null}
 
@@ -660,9 +630,7 @@ export default function PunctualityPlanner() {
 
                   {showNamePrompt && saveForFuture ? (
                     <div className="mt-3">
-                      <div className="text-xs text-white/60 mb-2">
-                        Name this setting
-                      </div>
+                      <div className="text-xs text-white/60 mb-2">Name this setting</div>
 
                       <div className="flex items-center gap-3">
                         <input
@@ -692,21 +660,15 @@ export default function PunctualityPlanner() {
                         </button>
                       </div>
 
-                      <div className="mt-2 text-[11px] text-white/45">
-                        Example: Morning walk, Church, School, Work
-                      </div>
+                      <div className="mt-2 text-[11px] text-white/45">Example: Morning walk, Church, School, Work</div>
                     </div>
                   ) : null}
 
                   {profiles.length > 0 ? (
                     <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
                       <div className="px-4 py-3 border-b border-white/10 text-center">
-                        <div className="text-sm font-semibold text-white">
-                          Saved settings
-                        </div>
-                        <div className="text-xs text-white/60 mt-1">
-                          Tap to apply
-                        </div>
+                        <div className="text-sm font-semibold text-white">Saved settings</div>
+                        <div className="text-xs text-white/60 mt-1">Tap to apply</div>
                       </div>
                       <div className="p-3 space-y-2">
                         {profiles.slice(0, 6).map((p) => (
@@ -717,16 +679,11 @@ export default function PunctualityPlanner() {
                             className="w-full text-left rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition px-3 py-2"
                           >
                             <div className="flex items-center justify-between gap-3">
-                              <div className="text-sm font-semibold text-white/90 truncate">
-                                {p.name}
-                              </div>
-                              <div className="text-[11px] text-white/60 whitespace-nowrap">
-                                {p.preset || "Custom"}
-                              </div>
+                              <div className="text-sm font-semibold text-white/90 truncate">{p.name}</div>
+                              <div className="text-[11px] text-white/60 whitespace-nowrap">{p.preset || "Custom"}</div>
                             </div>
                             <div className="mt-1 text-[11px] text-white/55">
-                              Ready {p.prep}m, commute {p.commute}m, extra{" "}
-                              {p.extraTime}m
+                              Ready {p.prep}m, commute {p.commute}m, extra {p.extraTime}m
                             </div>
                           </button>
                         ))}
@@ -734,23 +691,21 @@ export default function PunctualityPlanner() {
                     </div>
                   ) : null}
 
-                  {note ? (
-                    <div className="mt-3 text-xs text-white/60 text-center">
-                      {note}
-                    </div>
-                  ) : null}
+                  {note ? <div className="mt-3 text-xs text-white/60 text-center">{note}</div> : null}
                 </div>
+
+                <Credit />
               </>
             ) : null}
+
+            {page === "result" ? <Credit /> : null}
           </div>
 
           {page === "result" ? (
             <>
               <div className="border-t border-white/10 bg-white/5 p-6">
                 {!schedule ? (
-                  <div className="text-sm text-white/70 text-center">
-                    Missing inputs, go back and fill everything.
-                  </div>
+                  <div className="text-sm text-white/70 text-center">Missing inputs, go back and fill everything.</div>
                 ) : (
                   <div className="space-y-4">
                     <div className="grid grid-cols-3 gap-3 text-center">
@@ -776,75 +731,66 @@ export default function PunctualityPlanner() {
 
                     <div className="rounded-2xl bg-white/5 border border-white/10 overflow-hidden">
                       <div className="px-4 py-3 border-b border-white/10 text-center">
-                        <div className="text-sm font-semibold text-white">
-                          Simple timeline
-                        </div>
+                        <div className="text-sm font-semibold text-white">Simple timeline</div>
                         <div className="text-xs text-white/70 mt-1">
-                          Shower {schedule.meta.shower}m, eat{" "}
-                          {schedule.meta.eat}m.
+                          Shower {schedule.meta.shower}m, eat {schedule.meta.eat}m.
                         </div>
                       </div>
 
                       <ul className="divide-y divide-white/10">
                         <li className="px-4 py-3 flex items-center justify-between gap-3">
-                          <span className="text-sm text-white/80">
-                             Start prep ⏰
-                          </span>
-                          <span className="text-sm font-semibold text-white">
-                            {formatTime(schedule.startPrepBy)}
-                          </span>
+                          <span className="text-sm text-white/80">Start prep ⏰</span>
+                          <span className="text-sm font-semibold text-white">{formatTime(schedule.startPrepBy)}</span>
                         </li>
                         <li className="px-4 py-3 flex items-center justify-between gap-3">
-                          <span className="text-sm text-white/80">
-                            Shower 🚿
-                          </span>
-                          <span className="text-sm font-semibold text-white">
-                            {formatTime(schedule.showerTime)}
-                          </span>
+                          <span className="text-sm text-white/80">Shower 🚿</span>
+                          <span className="text-sm font-semibold text-white">{formatTime(schedule.showerTime)}</span>
                         </li>
                         <li className="px-4 py-3 flex items-center justify-between gap-3">
                           <span className="text-sm text-white/80">Eat 🍽️</span>
-                          <span className="text-sm font-semibold text-white">
-                            {formatTime(schedule.eatTime)}
-                          </span>
+                          <span className="text-sm font-semibold text-white">{formatTime(schedule.eatTime)}</span>
                         </li>
                         <li className="px-4 py-3 flex items-center justify-between gap-3">
-                          <span className="text-sm text-white/80">
-                             Leave by 🚗
-                          </span>
-                          <span className="text-sm font-semibold text-white">
-                            {formatTime(schedule.leaveBy)}
-                          </span>
+                          <span className="text-sm text-white/80">Leave by 🚗</span>
+                          <span className="text-sm font-semibold text-white">{formatTime(schedule.leaveBy)}</span>
                         </li>
                         <li className="px-4 py-3 flex items-center justify-between gap-3">
-                          <span className="text-sm text-white/80">
-                             Arrive by 📍
-                          </span>
-                          <span className="text-sm font-semibold text-white">
-                            {formatTime(schedule.arriveBy)}
-                          </span>
+                          <span className="text-sm text-white/80">Arrive by 📍</span>
+                          <span className="text-sm font-semibold text-white">{formatTime(schedule.arriveBy)}</span>
                         </li>
                       </ul>
                     </div>
 
                     <div className="text-xs text-white/70 text-center">
-                      Includes extra time: {schedule.meta.safeExtraTime}{" "}
-                      minutes.
+                      Includes extra time: {schedule.meta.safeExtraTime} minutes.
                     </div>
                   </div>
                 )}
               </div>
 
               <div className="border-t border-white/10 bg-white/5 p-6">
-                <div className="text-xs text-white/60 text-center">
-                  Adjust inputs
-                </div>
+                <div className="text-xs text-white/60 text-center">Adjust inputs</div>
                 {InputGrid(false)}
               </div>
             </>
           ) : null}
         </div>
       </div>
+
+      {hasUpdate ? (
+        <div className="fixed left-0 right-0 bottom-4 px-4 z-50">
+          <div className="max-w-xl mx-auto rounded-2xl border border-white/10 bg-slate-950/80 backdrop-blur px-4 py-3 flex items-center justify-between gap-3">
+            <div className="text-sm text-white/85">Update available</div>
+            <button
+              type="button"
+              onClick={refresh}
+              className="rounded-xl px-4 py-2 font-semibold bg-white/10 text-white hover:bg-white/15"
+            >
+              Refresh
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
