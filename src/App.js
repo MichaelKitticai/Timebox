@@ -5,6 +5,34 @@ function clampNumber(n, min, max) {
   return Math.min(max, Math.max(min, n));
 }
 
+import { useEffect, useState } from "react";
+
+function useServiceWorkerUpdate() {
+  const [registration, setRegistration] = useState(null);
+
+  useEffect(() => {
+    const handler = (e) => setRegistration(e.detail);
+    window.addEventListener("timebox_sw_update", handler);
+    return () => window.removeEventListener("timebox_sw_update", handler);
+  }, []);
+
+  const refresh = () => {
+    if (!registration?.waiting) return;
+    registration.waiting.postMessage({ type: "SKIP_WAITING" });
+  };
+
+  useEffect(() => {
+    if (!registration) return;
+
+    const onControllerChange = () => window.location.reload();
+    navigator.serviceWorker?.addEventListener("controllerchange", onControllerChange);
+    return () => navigator.serviceWorker?.removeEventListener("controllerchange", onControllerChange);
+  }, [registration]);
+
+  return { hasUpdate: Boolean(registration?.waiting), refresh };
+}
+
+
 function formatTime(date) {
   return date.toLocaleTimeString("en-US", {
     hour: "2-digit",
