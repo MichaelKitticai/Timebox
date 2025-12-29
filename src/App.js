@@ -6,12 +6,8 @@ function clampNumber(n, min, max) {
   return Math.min(max, Math.max(min, n));
 }
 
-function addMinutes(date, minutes) {
-  return new Date(date.getTime() + minutes * 60_000);
-}
-
-function subtractMinutes(date, minutes) {
-  return new Date(date.getTime() - minutes * 60_000);
+function pad2(n) {
+  return String(n).padStart(2, "0");
 }
 
 function formatTime(date) {
@@ -22,10 +18,15 @@ function formatTime(date) {
   });
 }
 
-function pad2(n) {
-  return String(n).padStart(2, "0");
+function addMinutes(date, minutes) {
+  return new Date(date.getTime() + minutes * 60_000);
 }
 
+function subtractMinutes(date, minutes) {
+  return new Date(date.getTime() - minutes * 60_000);
+}
+
+// "HH:MM" (24h) -> "hh:mm AM/PM"
 function hhmmToDisplay(hhmm) {
   if (!hhmm) return "";
   const [hhRaw, mmRaw] = hhmm.split(":");
@@ -74,94 +75,6 @@ function useOutsideClick(ref, onOutside) {
   }, [ref, onOutside]);
 }
 
-function TimePickerField({ value, onChange }) {
-  const [open, setOpen] = useState(false);
-  const wrapRef = useRef(null);
-  const panelRef = useRef(null);
-
-  useOutsideClick(panelRef, () => setOpen(false));
-
-  const { hour12, minute, meridiem } = useMemo(() => displayPartsFromHHMM(value), [value]);
-
-  const hours = useMemo(() => Array.from({ length: 12 }, (_, i) => i + 1), []);
-  const minutes = useMemo(() => Array.from({ length: 60 }, (_, i) => i), []);
-  const meridiems = useMemo(() => ["AM", "PM"], []);
-
-  const setPart = (nextHour12, nextMinute, nextMeridiem) => {
-    const hhmm = toHHMM24(nextHour12, nextMinute, nextMeridiem);
-    onChange?.(hhmm);
-  };
-
-  const display = hhmmToDisplay(value);
-
-  return (
-    <div className="w-full" ref={wrapRef}>
-      <div className="relative w-full mt-2">
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          className={
-            "w-full h-12 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-left " +
-            "focus:outline-none focus:ring-2 focus:ring-indigo-400/70"
-          }
-          aria-haspopup="dialog"
-          aria-expanded={open}
-        >
-          <div className="flex items-center justify-between gap-3">
-            <div className={display ? "text-white" : "text-white/35"}>{display || "08:00 AM"}</div>
-
-            <div className="h-9 w-9 rounded-lg bg-white/5 border border-white/10 grid place-items-center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="opacity-90">
-                <path
-                  d="M12 8v5l3 2M21 12a9 9 0 1 1-18 0a9 9 0 0 1 18 0Z"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="text-white"
-                />
-              </svg>
-            </div>
-          </div>
-        </button>
-
-        {open ? (
-  <div
-    ref={panelRef}
-    className="absolute z-50 mt-2 w-[320px] rounded-[32px] border border-white/10 bg-white/10 backdrop-blur-2xl shadow-2xl shadow-black/40 overflow-hidden"
-    role="dialog"
-    aria-label="Time picker"
-  >
-    <div className="p-4">
-      <div className="grid grid-cols-3 gap-4 items-start">
-        <WheelColumn
-          items={hours}
-          selected={hour12}
-          format={(n) => pad2(n)}
-          onPick={(h) => setPart(h, minute, meridiem)}
-        />
-        <WheelColumn
-          items={minutes}
-          selected={minute}
-          format={(n) => pad2(n)}
-          onPick={(m) => setPart(hour12, m, meridiem)}
-        />
-        <WheelColumn
-          items={meridiems}
-          selected={meridiem}
-          format={(s) => s}
-          onPick={(md) => setPart(hour12, minute, md)}
-        />
-      </div>
-    </div>
-  </div>
-) : null}
-
-      </div>
-    </div>
-  );
-}
-
 function WheelColumn({ items, selected, format, onPick }) {
   return (
     <div className="relative rounded-[26px] bg-white/10 border border-white/10 overflow-hidden">
@@ -195,30 +108,95 @@ function WheelColumn({ items, selected, format, onPick }) {
   );
 }
 
+function TimePickerField({ value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
 
-function PickerColumn({ label, items, selected, format, onPick }) {
+  useOutsideClick(wrapRef, () => setOpen(false));
+
+  const { hour12, minute, meridiem } = useMemo(() => displayPartsFromHHMM(value), [value]);
+
+  const hours = useMemo(() => Array.from({ length: 12 }, (_, i) => i + 1), []);
+  const minutes = useMemo(() => Array.from({ length: 60 }, (_, i) => i), []);
+  const meridiems = useMemo(() => ["AM", "PM"], []);
+
+  const setPart = (nextHour12, nextMinute, nextMeridiem) => {
+    const hhmm = toHHMM24(nextHour12, nextMinute, nextMeridiem);
+    onChange?.(hhmm);
+  };
+
+  const display = hhmmToDisplay(value);
+
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
-      <div className="px-3 py-2 border-b border-white/10 text-[11px] text-white/60">{label}</div>
-      <div className="max-h-56 overflow-auto p-2 space-y-2">
-        {items.map((it) => {
-          const active = it === selected;
-          return (
-            <button
-              key={String(it)}
-              type="button"
-              onClick={() => onPick(it)}
-              className="w-full h-16 rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-left focus:outline-none focus:ring-2 focus:ring-indigo-400/70"
-                (active
-                  ? "bg-gradient-to-r from-indigo-500 to-fuchsia-500 text-white border-white/10"
-                  : "bg-white/5 text-white/85 border-white/10 hover:bg-white/10")
-              }
-              aria-pressed={active}
-            >
-              {format(it)}
-            </button>
-          );
-        })}
+    <div className="w-full" ref={wrapRef}>
+      <div className="relative w-full mt-2">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="w-full h-16 rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-left focus:outline-none focus:ring-2 focus:ring-indigo-400/70"
+          aria-haspopup="dialog"
+          aria-expanded={open}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className={display ? "text-white text-lg" : "text-white/35 text-lg"}>
+              {display || "08:00 AM"}
+            </div>
+
+            <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 grid place-items-center">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="opacity-90">
+                <path
+                  d="M12 8v5l3 2M21 12a9 9 0 1 1-18 0a9 9 0 0 1 18 0Z"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-white"
+                />
+              </svg>
+            </div>
+          </div>
+        </button>
+
+        {open ? (
+          <div
+            className="absolute z-50 mt-3 w-[340px] max-w-[92vw] rounded-[32px] border border-white/10 bg-white/10 backdrop-blur-2xl shadow-2xl shadow-black/40 overflow-hidden"
+            role="dialog"
+            aria-label="Time picker"
+          >
+            <div className="p-4">
+              <div className="grid grid-cols-3 gap-4 items-start">
+                <WheelColumn
+                  items={hours}
+                  selected={hour12}
+                  format={(n) => pad2(n)}
+                  onPick={(h) => setPart(h, minute, meridiem)}
+                />
+                <WheelColumn
+                  items={minutes}
+                  selected={minute}
+                  format={(n) => pad2(n)}
+                  onPick={(m) => setPart(hour12, m, meridiem)}
+                />
+                <WheelColumn
+                  items={meridiems}
+                  selected={meridiem}
+                  format={(s) => s}
+                  onPick={(md) => setPart(hour12, minute, md)}
+                />
+              </div>
+
+              <div className="mt-4 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="h-10 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white/85 text-sm font-semibold"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -329,11 +307,12 @@ function saveProfiles(profiles) {
 export default function App() {
   const [page, setPage] = useState("setup"); // setup | result
 
-  // store as "HH:MM" 24h, but show styled picker
-  const [eventTime, setEventTime] = useState("");
+  const [eventTime, setEventTime] = useState(""); // "HH:MM" 24h
   const [prepMinutes, setPrepMinutes] = useState("");
   const [commuteMinutes, setCommuteMinutes] = useState("");
   const [extraTimeMinutes, setExtraTimeMinutes] = useState("");
+
+  const [activePreset, setActivePreset] = useState("Normal");
 
   const [saveForFuture, setSaveForFuture] = useState(false);
   const [showNamePrompt, setShowNamePrompt] = useState(false);
@@ -341,6 +320,7 @@ export default function App() {
   const [savedThisSession, setSavedThisSession] = useState(false);
   const nameRef = useRef(null);
   const [note, setNote] = useState("");
+
   const [profiles, setProfiles] = useState([]);
 
   const presets = useMemo(
@@ -352,7 +332,6 @@ export default function App() {
     []
   );
 
-  const [activePreset, setActivePreset] = useState("Normal");
   const normalDefaults = useMemo(() => presets.find((p) => p.label === "Normal") || presets[0], [presets]);
 
   const defaultsNow = useMemo(() => {
@@ -360,7 +339,10 @@ export default function App() {
     return found || normalDefaults;
   }, [activePreset, presets, normalDefaults]);
 
-  const effectivePrep = useMemo(() => (String(prepMinutes).trim() === "" ? defaultsNow.prep : prepMinutes), [prepMinutes, defaultsNow]);
+  const effectivePrep = useMemo(
+    () => (String(prepMinutes).trim() === "" ? defaultsNow.prep : prepMinutes),
+    [prepMinutes, defaultsNow]
+  );
   const effectiveCommute = useMemo(
     () => (String(commuteMinutes).trim() === "" ? defaultsNow.commute : commuteMinutes),
     [commuteMinutes, defaultsNow]
@@ -475,10 +457,7 @@ export default function App() {
     const preset = activePreset || "";
 
     const existing = loadProfiles();
-    const next = [
-      { id, name, prep, commute, extraTime, preset, createdAt: new Date().toISOString() },
-      ...existing,
-    ].slice(0, 20);
+    const next = [{ id, name, prep, commute, extraTime, preset, createdAt: new Date().toISOString() }, ...existing].slice(0, 20);
 
     saveProfiles(next);
     setProfiles(next);
