@@ -6,12 +6,29 @@ function clampNumber(n, min, max) {
   return Math.min(max, Math.max(min, n));
 }
 
-function addMinutes(date, minutes) {
-  return new Date(date.getTime() + minutes * 60_000);
-}
+function useServiceWorkerUpdate() {
+  const [registration, setRegistration] = useState(null);
 
-function subtractMinutes(date, minutes) {
-  return new Date(date.getTime() - minutes * 60_000);
+  useEffect(() => {
+    const handler = (e) => setRegistration(e.detail);
+    window.addEventListener("timebox_sw_update", handler);
+    return () => window.removeEventListener("timebox_sw_update", handler);
+  }, []);
+
+  const refresh = () => {
+    if (!registration?.waiting) return;
+    registration.waiting.postMessage({ type: "SKIP_WAITING" });
+  };
+
+  useEffect(() => {
+    if (!registration) return;
+
+    const onControllerChange = () => window.location.reload();
+    navigator.serviceWorker?.addEventListener("controllerchange", onControllerChange);
+    return () => navigator.serviceWorker?.removeEventListener("controllerchange", onControllerChange);
+  }, [registration]);
+
+  return { hasUpdate: Boolean(registration?.waiting), refresh };
 }
 
 function formatTime(date) {
@@ -22,204 +39,12 @@ function formatTime(date) {
   });
 }
 
-function pad2(n) {
-  return String(n).padStart(2, "0");
+function addMinutes(date, minutes) {
+  return new Date(date.getTime() + minutes * 60_000);
 }
 
-function hhmmToDisplay(hhmm) {
-  if (!hhmm) return "";
-  const [hhRaw, mmRaw] = hhmm.split(":");
-  const hh = Number(hhRaw);
-  const mm = Number(mmRaw);
-  if (Number.isNaN(hh) || Number.isNaN(mm)) return "";
-  const isPM = hh >= 12;
-  const hh12 = ((hh + 11) % 12) + 1;
-  return `${pad2(hh12)}:${pad2(mm)} ${isPM ? "PM" : "AM"}`;
-}
-
-function displayPartsFromHHMM(hhmm) {
-  if (!hhmm) return { hour12: 8, minute: 0, meridiem: "AM" };
-  const [hhRaw, mmRaw] = hhmm.split(":");
-  const hh = Number(hhRaw);
-  const mm = Number(mmRaw);
-  if (Number.isNaN(hh) || Number.isNaN(mm)) return { hour12: 8, minute: 0, meridiem: "AM" };
-  const meridiem = hh >= 12 ? "PM" : "AM";
-  const hour12 = ((hh + 11) % 12) + 1;
-  return { hour12, minute: mm, meridiem };
-}
-
-function toHHMM24(hour12, minute, meridiem) {
-  const h12 = clampNumber(Number(hour12), 1, 12);
-  const m = clampNumber(Number(minute), 0, 59);
-  const isPM = meridiem === "PM";
-  let h24 = h12 % 12;
-  if (isPM) h24 += 12;
-  return `${pad2(h24)}:${pad2(m)}`;
-}
-
-function useOutsideClick(ref, onOutside) {
-  useEffect(() => {
-    const onDown = (e) => {
-      const el = ref.current;
-      if (!el) return;
-      if (el.contains(e.target)) return;
-      onOutside?.();
-    };
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("touchstart", onDown, { passive: true });
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("touchstart", onDown);
-    };
-  }, [ref, onOutside]);
-}
-
-function TimePickerField({ value, onChange }) {
-  const [open, setOpen] = useState(false);
-  const wrapRef = useRef(null);
-  const panelRef = useRef(null);
-
-  useOutsideClick(panelRef, () => setOpen(false));
-
-  const { hour12, minute, meridiem } = useMemo(() => displayPartsFromHHMM(value), [value]);
-
-  const hours = useMemo(() => Array.from({ length: 12 }, (_, i) => i + 1), []);
-  const minutes = useMemo(() => Array.from({ length: 60 }, (_, i) => i), []);
-  const meridiems = useMemo(() => ["AM", "PM"], []);
-
-  const setPart = (nextHour12, nextMinute, nextMeridiem) => {
-    const hhmm = toHHMM24(nextHour12, nextMinute, nextMeridiem);
-    onChange?.(hhmm);
-  };
-
-  const display = hhmmToDisplay(value);
-
-  return (
-    <div className="w-full" ref={wrapRef}>
-      <div className="relative w-full mt-2">
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          className={
-            "w-full h-12 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-left " +
-            "focus:outline-none focus:ring-2 focus:ring-indigo-400/70"
-          }
-          aria-haspopup="dialog"
-          aria-expanded={open}
-        >
-          <div className="flex items-center justify-between gap-3">
-            <div className={display ? "text-white" : "text-white/35"}>{display || "08:00 AM"}</div>
-
-            <div className="h-9 w-9 rounded-lg bg-white/5 border border-white/10 grid place-items-center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="opacity-90">
-                <path
-                  d="M12 8v5l3 2M21 12a9 9 0 1 1-18 0a9 9 0 0 1 18 0Z"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="text-white"
-                />
-              </svg>
-            </div>
-          </div>
-        </button>
-
-        {open ? (
-          <div
-            ref={panelRef}
-            className={
-              "absolute z-50 mt-2 w-full max-w-sm rounded-2xl border border-white/10 bg-slate-950/95 " +
-              "backdrop-blur-xl shadow-2xl shadow-black/40 overflow-hidden"
-            }
-            role="dialog"
-            aria-label="Time picker"
-          >
-            <div className="px-4 py-3 border-b border-white/10">
-              <div className="text-sm text-white/85 font-semibold">Pick time</div>
-              <div className="text-xs text-white/55 mt-1">Tap hour, minute, or AM/PM</div>
-            </div>
-
-            <div className="p-4">
-              <div className="grid grid-cols-3 gap-3">
-                <PickerColumn
-                  label="Hour"
-                  items={hours}
-                  selected={hour12}
-                  format={(n) => pad2(n)}
-                  onPick={(h) => setPart(h, minute, meridiem)}
-                />
-                <PickerColumn
-                  label="Minute"
-                  items={minutes}
-                  selected={minute}
-                  format={(n) => pad2(n)}
-                  onPick={(m) => setPart(hour12, m, meridiem)}
-                />
-                <PickerColumn
-                  label="AM/PM"
-                  items={meridiems}
-                  selected={meridiem}
-                  format={(s) => s}
-                  onPick={(md) => setPart(hour12, minute, md)}
-                />
-              </div>
-
-              <div className="mt-4 flex items-center justify-between gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    onChange?.("");
-                    setOpen(false);
-                  }}
-                  className="h-10 px-4 rounded-xl bg-white/5 border border-white/10 text-white/75 hover:bg-white/10"
-                >
-                  Clear
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  className="h-10 px-5 rounded-xl bg-gradient-to-r from-indigo-500 to-fuchsia-500 text-white font-semibold hover:opacity-95 active:opacity-90"
-                >
-                  Done
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
-function PickerColumn({ label, items, selected, format, onPick }) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
-      <div className="px-3 py-2 border-b border-white/10 text-[11px] text-white/60">{label}</div>
-      <div className="max-h-56 overflow-auto p-2 space-y-2">
-        {items.map((it) => {
-          const active = it === selected;
-          return (
-            <button
-              key={String(it)}
-              type="button"
-              onClick={() => onPick(it)}
-              className={
-                "w-full h-11 rounded-xl border text-center font-semibold transition " +
-                (active
-                  ? "bg-gradient-to-r from-indigo-500 to-fuchsia-500 text-white border-white/10"
-                  : "bg-white/5 text-white/85 border-white/10 hover:bg-white/10")
-              }
-              aria-pressed={active}
-            >
-              {format(it)}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
+function subtractMinutes(date, minutes) {
+  return new Date(date.getTime() - minutes * 60_000);
 }
 
 function computeSchedule({ eventTime, prepMinutes, commuteMinutes, extraTimeMinutes }) {
@@ -258,6 +83,21 @@ function computeSchedule({ eventTime, prepMinutes, commuteMinutes, extraTimeMinu
   };
 }
 
+function inferPreset({ prep, commute, extraTime }, presets) {
+  let best = null;
+  let bestScore = Infinity;
+
+  for (const p of presets) {
+    const score = Math.abs(prep - p.prep) + Math.abs(commute - p.commute) + Math.abs(extraTime - p.extraTime);
+    if (score < bestScore) {
+      bestScore = score;
+      best = p.label;
+    }
+  }
+
+  return best;
+}
+
 function Field({ id, label, helper, children, after }) {
   return (
     <div className="w-full flex flex-col items-start text-left">
@@ -267,6 +107,35 @@ function Field({ id, label, helper, children, after }) {
       {children}
       {after ? <div className="mt-2 w-full">{after}</div> : null}
       <div className="mt-2 text-xs text-white/50">{helper}</div>
+    </div>
+  );
+}
+
+function Presets({ presets, activePreset, onPick }) {
+  return (
+    <div className="mt-6 w-full max-w-md mx-auto grid grid-cols-3 gap-3 sm:max-w-none sm:mx-auto sm:flex sm:flex-row sm:flex-nowrap sm:justify-center sm:gap-4">
+      {presets.map((p) => (
+        <button
+          key={p.label}
+          onClick={() => onPick(p)}
+          className={
+            "w-full sm:w-auto rounded-2xl p-[1px] transition " +
+            (activePreset === p.label
+              ? "bg-gradient-to-r from-fuchsia-500/90 via-indigo-500/90 to-cyan-400/90 shadow-lg shadow-fuchsia-500/20"
+              : "bg-white/10 hover:bg-white/15")
+          }
+          type="button"
+        >
+          <span
+            className={
+              "w-full sm:w-auto flex items-center justify-center rounded-2xl px-5 py-4 text-sm sm:text-base font-semibold " +
+              (activePreset === p.label ? "bg-slate-950/60 text-white" : "bg-white/5 text-white/85")
+            }
+          >
+            {p.label}
+          </span>
+        </button>
+      ))}
     </div>
   );
 }
@@ -324,21 +193,44 @@ function saveProfiles(profiles) {
   }
 }
 
-export default function App() {
+function Credit() {
+  return (
+    <div className="mt-6 text-center text-xs text-white/55">
+      Made by{" "}
+      <a
+        href="https://www.linkedin.com/in/michaelkitticai/"
+        target="_blank"
+        rel="noreferrer"
+        className="underline text-white/75 hover:text-white"
+      >
+        Kitticai
+      </a>{" "}
+      ❤️
+    </div>
+  );
+}
+
+export default function PunctualityPlanner() {
+  const { hasUpdate, refresh } = useServiceWorkerUpdate();
+
   const [page, setPage] = useState("setup"); // setup | result
 
-  // store as "HH:MM" 24h, but show styled picker
   const [eventTime, setEventTime] = useState("");
   const [prepMinutes, setPrepMinutes] = useState("");
   const [commuteMinutes, setCommuteMinutes] = useState("");
   const [extraTimeMinutes, setExtraTimeMinutes] = useState("");
 
+  // Default highlight Normal
+  const [activePreset, setActivePreset] = useState("Normal");
+
+  // Save as named setting
   const [saveForFuture, setSaveForFuture] = useState(false);
   const [showNamePrompt, setShowNamePrompt] = useState(false);
   const [settingName, setSettingName] = useState("");
   const [savedThisSession, setSavedThisSession] = useState(false);
   const nameRef = useRef(null);
   const [note, setNote] = useState("");
+
   const [profiles, setProfiles] = useState([]);
 
   const presets = useMemo(
@@ -350,24 +242,31 @@ export default function App() {
     []
   );
 
-  const [activePreset, setActivePreset] = useState("Normal");
   const normalDefaults = useMemo(() => presets.find((p) => p.label === "Normal") || presets[0], [presets]);
 
-  const defaultsNow = useMemo(() => {
-    const found = presets.find((p) => p.label === activePreset);
+  const getPresetDefaults = (label) => {
+    const found = presets.find((p) => p.label === label);
     return found || normalDefaults;
-  }, [activePreset, presets, normalDefaults]);
+  };
 
-  const effectivePrep = useMemo(() => (String(prepMinutes).trim() === "" ? defaultsNow.prep : prepMinutes), [prepMinutes, defaultsNow]);
-  const effectiveCommute = useMemo(
-    () => (String(commuteMinutes).trim() === "" ? defaultsNow.commute : commuteMinutes),
-    [commuteMinutes, defaultsNow]
-  );
-  const effectiveExtra = useMemo(
-    () => (String(extraTimeMinutes).trim() === "" ? defaultsNow.extraTime : extraTimeMinutes),
-    [extraTimeMinutes, defaultsNow]
-  );
+  const defaultsNow = useMemo(() => getPresetDefaults(activePreset || "Normal"), [activePreset, normalDefaults]);
 
+  const effectivePrep = useMemo(() => {
+    const raw = String(prepMinutes).trim();
+    return raw === "" ? defaultsNow.prep : raw;
+  }, [prepMinutes, defaultsNow]);
+
+  const effectiveCommute = useMemo(() => {
+    const raw = String(commuteMinutes).trim();
+    return raw === "" ? defaultsNow.commute : raw;
+  }, [commuteMinutes, defaultsNow]);
+
+  const effectiveExtra = useMemo(() => {
+    const raw = String(extraTimeMinutes).trim();
+    return raw === "" ? defaultsNow.extraTime : raw;
+  }, [extraTimeMinutes, defaultsNow]);
+
+  // Load profiles, also auto load last one if present
   useEffect(() => {
     const all = loadProfiles();
     setProfiles(all);
@@ -389,7 +288,7 @@ export default function App() {
     if (typeof last?.preset === "string" && last.preset) setActivePreset(last.preset);
 
     setNote(`Loaded: ${last.name || "Saved setting"}`);
-    window.setTimeout(() => setNote(""), 1400);
+    window.setTimeout(() => setNote(""), 1600);
   }, []);
 
   useEffect(() => {
@@ -417,6 +316,17 @@ export default function App() {
     });
   }, [eventTime, effectivePrep, effectiveCommute, effectiveExtra]);
 
+  const inferredPreset = useMemo(() => {
+    const prep = parseInt(String(effectivePrep), 10);
+    const commute = parseInt(String(effectiveCommute), 10);
+    const extraTime = parseInt(String(effectiveExtra), 10);
+
+    if (Number.isNaN(prep) || Number.isNaN(commute) || Number.isNaN(extraTime)) return null;
+
+    return inferPreset({ prep, commute, extraTime }, presets);
+  }, [effectivePrep, effectiveCommute, effectiveExtra, presets]);
+
+  // User only must set event time
   const isReadyToCalculate = Boolean(eventTime);
 
   const canSaveNamed =
@@ -448,7 +358,7 @@ export default function App() {
     }
 
     setNote(`Using: ${p.name}`);
-    window.setTimeout(() => setNote(""), 1400);
+    window.setTimeout(() => setNote(""), 1600);
   };
 
   const saveProfileNow = () => {
@@ -459,7 +369,7 @@ export default function App() {
     if (!name) {
       setShowNamePrompt(true);
       setNote("Name your setting to save it");
-      window.setTimeout(() => setNote(""), 1400);
+      window.setTimeout(() => setNote(""), 1600);
       return false;
     }
 
@@ -470,11 +380,19 @@ export default function App() {
     if (Number.isNaN(prep) || Number.isNaN(commute) || Number.isNaN(extraTime)) return false;
 
     const id = `p_${Date.now()}_${Math.random().toString(16).slice(2)}`;
-    const preset = activePreset || "";
+    const preset = activePreset || inferredPreset || "";
 
     const existing = loadProfiles();
     const next = [
-      { id, name, prep, commute, extraTime, preset, createdAt: new Date().toISOString() },
+      {
+        id,
+        name,
+        prep,
+        commute,
+        extraTime,
+        preset,
+        createdAt: new Date().toISOString(),
+      },
       ...existing,
     ].slice(0, 20);
 
@@ -490,14 +408,31 @@ export default function App() {
     setSavedThisSession(true);
     setShowNamePrompt(false);
     setNote("Saved for future use");
-    window.setTimeout(() => setNote(""), 1400);
+    window.setTimeout(() => setNote(""), 1600);
     return true;
   };
 
   const InputGrid = (showMiniPresets) => (
     <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
       <Field id="eventTime" label="Event time" helper="When you must be there">
-        <TimePickerField value={eventTime} onChange={setEventTime} />
+        <div className="relative w-full mt-2">
+          {!eventTime && (
+            <div className="pointer-events-none absolute inset-y-0 left-0 right-10 flex items-center px-3 text-white/35 select-none">
+              08:00 AM
+            </div>
+          )}
+          <input
+            id="eventTime"
+            type="time"
+            value={eventTime}
+            onChange={(e) => setEventTime(e.target.value)}
+            className={
+              "w-full h-12 rounded-xl border border-white/10 bg-white/5 px-3 py-2 appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-400/70 " +
+              "[&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-80 [&::-webkit-calendar-picker-indicator]:cursor-pointer " +
+              (eventTime ? "text-white" : "text-transparent")
+            }
+          />
+        </div>
       </Field>
 
       <Field
@@ -530,7 +465,7 @@ export default function App() {
             setExtraTimeMinutes(e.target.value);
             resetPresetOnEdit();
           }}
-          className="mt-2 w-full h-12 rounded-xl border border-white/10 bg-white/5 text-white px-3 py-2 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-indigo-400/70"
+          className="mt-2 w-full h-12 rounded-xl border border-white/10 bg-white/5 text-white px-3 py-2 placeholder:text-white/35 appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-400/70"
         />
       </Field>
 
@@ -564,7 +499,7 @@ export default function App() {
             setPrepMinutes(e.target.value);
             resetPresetOnEdit();
           }}
-          className="mt-2 w-full h-12 rounded-xl border border-white/10 bg-white/5 text-white px-3 py-2 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-indigo-400/70"
+          className="mt-2 w-full h-12 rounded-xl border border-white/10 bg-white/5 text-white px-3 py-2 placeholder:text-white/35 appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-400/70"
         />
       </Field>
 
@@ -598,7 +533,7 @@ export default function App() {
             setCommuteMinutes(e.target.value);
             resetPresetOnEdit();
           }}
-          className="mt-2 w-full h-12 rounded-xl border border-white/10 bg-white/5 text-white px-3 py-2 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-indigo-400/70"
+          className="mt-2 w-full h-12 rounded-xl border border-white/10 bg-white/5 text-white px-3 py-2 placeholder:text-white/35 appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-400/70"
         />
       </Field>
     </div>
@@ -623,36 +558,23 @@ export default function App() {
               ) : null}
 
               {page === "result" ? (
-                <button type="button" onClick={() => setPage("setup")} className="mt-1 text-xs text-white/60 hover:text-white/80">
+                <button
+                  type="button"
+                  onClick={() => setPage("setup")}
+                  className="mt-1 text-xs text-white/60 hover:text-white/80"
+                >
                   Edit inputs
                 </button>
               ) : null}
             </div>
 
-            <div className="mt-6 w-full max-w-md mx-auto grid grid-cols-3 gap-3 sm:max-w-none sm:flex sm:justify-center sm:gap-4">
-              {presets.map((p) => (
-                <button
-                  key={p.label}
-                  onClick={() => applyPreset(p)}
-                  className={
-                    "w-full sm:w-auto rounded-2xl p-[1px] transition " +
-                    (activePreset === p.label
-                      ? "bg-gradient-to-r from-fuchsia-500/90 via-indigo-500/90 to-cyan-400/90 shadow-lg shadow-fuchsia-500/20"
-                      : "bg-white/10 hover:bg-white/15")
-                  }
-                  type="button"
-                >
-                  <span
-                    className={
-                      "w-full sm:w-auto flex items-center justify-center rounded-2xl px-5 py-4 text-sm sm:text-base font-semibold " +
-                      (activePreset === p.label ? "bg-slate-950/60 text-white" : "bg-white/5 text-white/85")
-                    }
-                  >
-                    {p.label}
-                  </span>
-                </button>
-              ))}
-            </div>
+            <Presets presets={presets} activePreset={page === "result" ? inferredPreset : activePreset} onPick={applyPreset} />
+
+            {page === "result" && inferredPreset ? (
+              <div className="mt-3 text-xs text-white/60 text-center">
+                Your settings match: <span className="text-white/80 font-semibold">{inferredPreset}</span>
+              </div>
+            ) : null}
 
             {page === "setup" ? (
               <>
@@ -680,7 +602,12 @@ export default function App() {
                 </button>
 
                 <div className="mt-4 w-full">
-                  <label className={"flex items-center gap-2 text-xs select-none " + (canSaveNamed ? "text-white/70" : "text-white/35")}>
+                  <label
+                    className={
+                      "flex items-center gap-2 text-xs select-none " +
+                      (canSaveNamed ? "text-white/70" : "text-white/35")
+                    }
+                  >
                     <input
                       type="checkbox"
                       checked={saveForFuture}
@@ -766,8 +693,12 @@ export default function App() {
 
                   {note ? <div className="mt-3 text-xs text-white/60 text-center">{note}</div> : null}
                 </div>
+
+                <Credit />
               </>
             ) : null}
+
+            {page === "result" ? <Credit /> : null}
           </div>
 
           {page === "result" ? (
@@ -780,15 +711,21 @@ export default function App() {
                     <div className="grid grid-cols-3 gap-3 text-center">
                       <div className="rounded-xl bg-white/5 border border-white/10 p-3 sm:p-4">
                         <div className="text-xs text-white/60">Start</div>
-                        <div className="mt-1 text-base sm:text-lg font-semibold text-white">{formatTime(schedule.startPrepBy)}</div>
+                        <div className="mt-1 text-base sm:text-lg font-semibold text-white">
+                          {formatTime(schedule.startPrepBy)}
+                        </div>
                       </div>
                       <div className="rounded-xl bg-white/5 border border-white/10 p-3 sm:p-4">
                         <div className="text-xs text-white/60">Leave</div>
-                        <div className="mt-1 text-base sm:text-lg font-semibold text-white">{formatTime(schedule.leaveBy)}</div>
+                        <div className="mt-1 text-base sm:text-lg font-semibold text-white">
+                          {formatTime(schedule.leaveBy)}
+                        </div>
                       </div>
                       <div className="rounded-xl bg-white/5 border border-white/10 p-3 sm:p-4">
                         <div className="text-xs text-white/60">Arrive</div>
-                        <div className="mt-1 text-base sm:text-lg font-semibold text-white">{formatTime(schedule.arriveBy)}</div>
+                        <div className="mt-1 text-base sm:text-lg font-semibold text-white">
+                          {formatTime(schedule.arriveBy)}
+                        </div>
                       </div>
                     </div>
 
@@ -824,7 +761,9 @@ export default function App() {
                       </ul>
                     </div>
 
-                    <div className="text-xs text-white/70 text-center">Includes extra time: {schedule.meta.safeExtraTime} minutes.</div>
+                    <div className="text-xs text-white/70 text-center">
+                      Includes extra time: {schedule.meta.safeExtraTime} minutes.
+                    </div>
                   </div>
                 )}
               </div>
@@ -835,23 +774,23 @@ export default function App() {
               </div>
             </>
           ) : null}
-
-          <div className="border-t border-white/10 bg-white/5 px-6 py-4 text-center">
-            <div className="text-xs text-white/60">
-              Made by{" "}
-              <a
-                href="https://www.linkedin.com/in/michaelkitticai/"
-                target="_blank"
-                rel="noreferrer"
-                className="underline text-white/80 hover:text-white"
-              >
-                Kitticai
-              </a>{" "}
-              ❤️
-            </div>
-          </div>
         </div>
       </div>
+
+      {hasUpdate ? (
+        <div className="fixed left-0 right-0 bottom-4 px-4 z-50">
+          <div className="max-w-xl mx-auto rounded-2xl border border-white/10 bg-slate-950/80 backdrop-blur px-4 py-3 flex items-center justify-between gap-3">
+            <div className="text-sm text-white/85">Update available</div>
+            <button
+              type="button"
+              onClick={refresh}
+              className="rounded-xl px-4 py-2 font-semibold bg-white/10 text-white hover:bg-white/15"
+            >
+              Refresh
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
