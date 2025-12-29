@@ -66,8 +66,10 @@ function useOutsideClick(refs, onOutside) {
       const inside = refs.some((r) => r.current && r.current.contains(target));
       if (!inside) onOutside?.();
     };
+
     document.addEventListener("mousedown", onDown);
     document.addEventListener("touchstart", onDown, { passive: true });
+
     return () => {
       document.removeEventListener("mousedown", onDown);
       document.removeEventListener("touchstart", onDown);
