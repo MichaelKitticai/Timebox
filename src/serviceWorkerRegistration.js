@@ -1,23 +1,17 @@
-function registerValidSW(swUrl, config) {
-  navigator.serviceWorker
-    .register(swUrl)
-    .then((registration) => {
-      registration.onupdatefound = () => {
-        const installingWorker = registration.installing;
-        if (!installingWorker) return;
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import App from "./App";
+import "./styles.css";
+import * as serviceWorkerRegistration from "./serviceWorkerRegistration";
 
-        installingWorker.onstatechange = () => {
-          if (installingWorker.state !== "installed") return;
+createRoot(document.getElementById("root")).render(
+  <StrictMode>
+    <App />
+  </StrictMode>
+);
 
-          // New content is available
-          if (navigator.serviceWorker.controller) {
-            if (config && config.onUpdate) config.onUpdate(registration);
-          } else {
-            // First install
-            if (config && config.onSuccess) config.onSuccess(registration);
-          }
-        };
-      };
-    })
-    .catch(() => {});
-}
+serviceWorkerRegistration.register({
+  onUpdate: (registration) => {
+    window.dispatchEvent(new CustomEvent("timebox_sw_update", { detail: registration }));
+  },
+});
